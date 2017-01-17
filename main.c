@@ -33,8 +33,8 @@ void initRoom(room *r, int tlX, int tlY, int w, int h) {
     r->dimensions.y = h;
 }
 
-#define scrnX 80
-#define scrnY 24
+#define scrnX 40  
+#define scrnY 23
 char screen[scrnY][scrnX];
 
 int main() {
@@ -81,28 +81,47 @@ int main() {
         Screen displaying starts here
     */
     int exit = 0;
-    char input;
+    char input[140];
     do {
-        scanf(" %c", &input);
-
-        switch(input) {
+        scanf(" %s", &input);
+        vec2 walk;
+        walk.x = 0;
+        walk.y = 0;
+        switch(input[0]) {
             default:
                 break;
             case 'w':
-                dude.pos.y--;
+                walk.y--;
                 break;
             case 's':
-                dude.pos.y++;
+                walk.y++;
                 break;
             case 'a':
-                dude.pos.x--;
+                walk.x--;
                 break;
             case 'd':
-                dude.pos.x++;
+                walk.x++;
                 break;
             case 'q':
                 exit = 1;
                 break;
+        }
+
+        vec2 testpos = dude.pos;
+        testpos.x += walk.x;
+        testpos.y += walk.y;
+        if(testpos.x >= 0 && testpos.y >= 0 && testpos.x < scrnX && testpos.y < scrnY) {
+            for(int i = 0; i < hub.roomCount; i++) {
+                vec2 rPos = hub.rooms[i].topLeft;
+                vec2 rSize = hub.rooms[i].dimensions;
+                rSize.x += rPos.x;
+                rSize.y += rPos.y;
+                if(testpos.x >= rPos.x && testpos.x < rSize.x && testpos.y >= rPos.y && testpos.y < rSize.y) {
+                    dude.pos.x += walk.x;
+                    dude.pos.y += walk.y;
+                    break;
+                }
+            }
         }
 
         int m, n;
