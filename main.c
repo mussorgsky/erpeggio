@@ -9,7 +9,7 @@ typedef struct vec2 {
 } vec2;
 
 typedef struct door {
-    vec2 pos, parentPos;
+    vec2 pos, parentPos, targoo;
     struct door *target;
     int keylevel;
 } door;
@@ -153,74 +153,124 @@ void pickupItem(player *p, level *l) {
 
 char screen[scrnY][scrnX];
 
+const int levelDef[] = {
+    /* level size */ scrnX, scrnY,
+    /* rooms */ 3,
+        /* room 1 */ 1, 1, 6, 4,
+            /* doors in room 1 */ 2,
+                /* door 1 */ 5, 1, 0, /* target [room], [door] */ 1, 0,
+                /* door 2 */ 5, 2, 1, 1, 1,
+            /* items in room 1 */ 0,
+                /* no items in room 1 */
+            /* enemies in room 1*/ 0,
+                /* no enemies in room 1 */
+        /* room 2 */ 10, 1, 6, 4,
+            /* doors in room 2 */ 2,
+                /* door 1 */ 0, 1, 0, 0, 0,
+                /* door 2 */ 0, 2, 1, 0, 1,
+            /* items in room 2 */ 1,
+                /* item 1 */ 1, 10, 2, 2,
+            /* enemies in room 2 */ 1,
+                /* enemy 1 */ 1, 2, 1,
+        /* room 3 */ 1, 5, 2, 2,
+            /* doors in room 3 */ 0,
+                /* no doors in room 3 */
+            /* items */ 0,
+                /* no items in room 3 */
+            /* enemies */ 0,
+                /* no enemies in room 3 */
+    /* player position */ 1, 1
+};
+
+const int levelDefoo[] = {
+    /* level size */ scrnX, scrnY,
+    /* rooms */ 1,
+        /* room 1 */ 2, 2, 5, 5,
+            /* doors in room 1 */ 2,
+                /* door 1 */ 0, 0, 1, /* target [room], [door] */ 0, 1,
+                /* door 2 */ 4, 4, 1, 0, 0,
+            /* items in room 1 */ 1,
+                /* item 1*/ 1, 10, 2, 2,
+            /* enemies in room 1*/ 1,
+                /* enemy 1 */ 1, 3, 3,
+    /* player position */ 1, 1
+};
+
+void initLevel(level *l, player *p, const int *def) {
+    int seeker = 0;
+    l->size.x = def[seeker++];
+    l->size.y = def[seeker++];
+    printf("level size set\n");
+
+    l->roomCount = def[seeker++];
+    l->rooms = malloc(l->roomCount * sizeof(room));
+    printf("room array allocated\n");
+
+    for(int i = 0; i < l->roomCount; i++) {
+        int x, y, w,h;
+        x = def[seeker++];
+        y = def[seeker++];
+        w = def[seeker++];
+        h = def[seeker++];
+        initRoom(&l->rooms[i], x, y, w, h);
+        printf("room %d initialized\n", i);
+
+        l->rooms[i].doorCount = def[seeker++];
+        l->rooms[i].doors = malloc(l->rooms[i].doorCount * sizeof(door));
+        printf("\tdoors initialized\n");
+        
+        for(int j = 0; j < l->rooms[i].doorCount; j++) {
+            l->rooms[i].doors[j].pos.x = def[seeker++];
+            l->rooms[i].doors[j].pos.y = def[seeker++];
+            l->rooms[i].doors[j].keylevel = def[seeker++];
+            l->rooms[i].doors[j].targoo.x = def[seeker++];
+            l->rooms[i].doors[j].targoo.y = def[seeker++];
+            l->rooms[i].doors[j].parentPos = l->rooms[i].topLeft;
+            printf("\t\tdoor %d initialized\n", j);
+        }
+
+        l->rooms[i].itemCount = def[seeker++];
+        l->rooms[i].items = malloc(l->rooms[i].itemCount * sizeof(item));
+        printf("\titems initialized\n");
+
+        for(int j = 0; j < l->rooms[i].itemCount; j++) {
+            l->rooms[i].items[j].type = def[seeker++];
+            l->rooms[i].items[j].level = def[seeker++];
+            l->rooms[i].items[j].pos.x = def[seeker++];
+            l->rooms[i].items[j].pos.y = def[seeker++];
+            printf("\t\titem %d initialized\n", j);
+        }
+
+        l->rooms[i].enemyCount = def[seeker++];
+        l->rooms[i].enemies = malloc(l->rooms[i].enemyCount * sizeof(enemy));
+        printf("\tenemies initialized\n");
+
+        for(int j = 0; j < l->rooms[i].enemyCount; j++) {
+            l->rooms[i].enemies[j].type = def[seeker++];
+            l->rooms[i].enemies[j].pos.x = def[seeker++];
+            l->rooms[i].enemies[j].pos.y = def[seeker++];
+            printf("\t\tenemy %d initialized\n", j);
+        }
+    }
+
+    p->pos = l->rooms[0].topLeft;
+    p->pos.x += def[seeker++];
+    p->pos.y += def[seeker++];
+    printf("player position set\n\n");
+
+    for(int i = 0; i < l->roomCount; i++) {
+        for(int j = 0; j < l->rooms[i].doorCount; j++) {
+            vec2 target = l->rooms[i].doors[j].targoo;
+            l->rooms[i].doors[j].target = &l->rooms[target.x].doors[target.y];
+            printf("door %d %d target set\n", i, j);
+        }
+    }
+}
+
 int main() {
     level hub;
-    hub.size.x = scrnX;
-    hub.size.y = scrnY;
-    hub.roomCount = 3;
-    hub.rooms = malloc(hub.roomCount * sizeof(room));
-
-    initRoom(&hub.rooms[0], 1, 1, 6, 4);
-    initRoom(&hub.rooms[1], 10, 1, 6, 4);
-    initRoom(&hub.rooms[2], 1, 5, 2, 2);
-
-    hub.rooms[0].doorCount = 2;
-    hub.rooms[1].doorCount = 2;
-    hub.rooms[2].doorCount = 0;
-    hub.rooms[0].doors = malloc(hub.rooms[0].doorCount * sizeof(door));
-    hub.rooms[1].doors = malloc(hub.rooms[1].doorCount * sizeof(door));
-
-    hub.rooms[0].doors[0].pos.x = 5;
-    hub.rooms[0].doors[0].pos.y = 1;
-    hub.rooms[0].doors[0].parentPos = hub.rooms[0].topLeft;
-    hub.rooms[0].doors[0].target = &hub.rooms[1].doors[0];
-    hub.rooms[0].doors[0].keylevel = 0;
-
-    hub.rooms[0].doors[1].pos.x = 5;
-    hub.rooms[0].doors[1].pos.y = 2;
-    hub.rooms[0].doors[1].parentPos = hub.rooms[0].topLeft;
-    hub.rooms[0].doors[1].target = &hub.rooms[1].doors[1];
-    hub.rooms[0].doors[1].keylevel = 1;
-
-    hub.rooms[1].doors[0].pos.x = 0;
-    hub.rooms[1].doors[0].pos.y = 1;
-    hub.rooms[1].doors[0].parentPos = hub.rooms[1].topLeft;
-    hub.rooms[1].doors[0].target = &hub.rooms[0].doors[0];
-    hub.rooms[1].doors[0].keylevel = 0;
-
-    hub.rooms[1].doors[1].pos.x = 0;
-    hub.rooms[1].doors[1].pos.y = 2;
-    hub.rooms[1].doors[1].parentPos = hub.rooms[1].topLeft;
-    hub.rooms[1].doors[1].target = &hub.rooms[0].doors[1];
-    hub.rooms[1].doors[1].keylevel = 1;
-
-    hub.rooms[0].itemCount = 0;
-
-    hub.rooms[1].itemCount = 1;
-    hub.rooms[1].items = malloc(hub.rooms[0].itemCount * sizeof(item));
-    hub.rooms[1].items[0].type = key;
-    hub.rooms[1].items[0].level = 10;
-    hub.rooms[1].items[0].inInventory = 0;
-    hub.rooms[1].items[0].pos.x = 2;
-    hub.rooms[1].items[0].pos.y = 2;
-
-    hub.rooms[2].itemCount = 0;
-
-    hub.rooms[0].enemyCount = 0;
-    hub.rooms[0].enemies = malloc(hub.rooms[0].enemyCount * sizeof(enemy));
-    hub.rooms[1].enemyCount = 1;
-    hub.rooms[1].enemies = malloc(hub.rooms[1].enemyCount * sizeof(enemy));
-
-    hub.rooms[1].enemies[0].type = normal;
-    hub.rooms[1].enemies[0].pos.x = 2;
-    hub.rooms[1].enemies[0].pos.y = 1;
-
-    hub.rooms[2].enemyCount = 0;
-
     player dude;
-    dude.pos = hub.rooms[0].topLeft;
-    dude.pos.x += 1;
-    dude.pos.y += 1;
+    initLevel(&hub, &dude, &levelDef[0]);
 
     dude.itemCount = 10;
     dude.items = malloc(dude.itemCount * sizeof(item));
