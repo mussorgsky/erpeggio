@@ -1,6 +1,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+#define scrnX 30
+#define scrnY 10
+
 typedef struct vec2 {
     int x, y;
 } vec2;
@@ -11,10 +14,22 @@ typedef struct door {
     int keylevel;
 } door;
 
+enum itemType { empty, key, healthpack };
+char itemLetter[] = { '$', 'k', 'h' };
+
+typedef struct item {
+    enum itemType type;
+    int level;
+    int inInventory;
+    vec2 pos;
+} item;
+
 typedef struct room {
     vec2 topLeft, dimensions;
     int doorCount;
     door *doors;
+    int itemCount;
+    item *items;
 } room;
 
 typedef struct level {
@@ -22,13 +37,6 @@ typedef struct level {
     int roomCount;
     room *rooms;
 } level;
-
-enum itemType { empty, key, healthpack };
-
-typedef struct item {
-    enum itemType type;
-    int level;
-} item;
 
 typedef struct player {
     vec2 pos;
@@ -54,8 +62,62 @@ int checkKey(player *p, door *d) {
     return 0;
 }
 
-#define scrnX 40
-#define scrnY 23
+void drawItems(room *rooms, int roomCount, char *screen) {
+    room *r;
+    item *it;
+    for(int i = 0; i < roomCount; i++) {
+        r = &rooms[i];
+        for(int j = 0; j < r->itemCount; j++) {
+            it = &r->items[j];
+            if(it->type != empty && !it->inInventory) {
+                vec2 pos;
+                pos.x = r->topLeft.x + it->pos.x;
+                pos.y = r->topLeft.y + it->pos.y;
+
+                //if(testpos.x >= rPos.x && testpos.x < rSize.x && testpos.y >= rPos.y && testpos.y < rSize.y)
+                if(pos.x >=0 && pos.x < scrnX && pos.y >= 0 && pos.y < scrnY) {
+                    screen[pos.y * scrnX + pos.x] = itemLetter[it->type];
+                } else {
+                    printf("item %d in room %d out of bounds!\n", j, i);
+                }
+            }
+        }
+    }
+}
+
+void pickupItem(player *p, level *l) {
+    vec2 pos = p->pos;
+    room *r;
+    for(int i = 0; i < l->roomCount; i++) {
+        r = &l->rooms[i];
+        vec2 ipos;
+        for(int j = 0; j < r->itemCount; j++) {
+            ipos = r->items[j].pos;
+            ipos.x += r->topLeft.x;
+            ipos.y += r->topLeft.y;
+            if(ipos.x = pos.x && ipos.y == pos.y) {
+                int done = 0;
+                switch(r->items[j].type) {
+                    default:
+                        break;
+                    case key:
+                        for(int k = 0; k < p->itemCount && !done; k++) {
+                            if(p->items[k].type == key) {
+                                p->items[k].level = r->items[j].level;
+                                r->items[j].type = empty;
+                                printf("picked up level %d key\n", r->items[j].level);
+                                done = 1;
+                            }
+                        }
+                        break;
+                    case healthpack:
+                        break;
+                }
+            }
+        }
+    }
+}
+
 char screen[scrnY][scrnX];
 
 int main() {
@@ -97,16 +159,44 @@ int main() {
     hub.rooms[1].doors[1].target = &hub.rooms[0].doors[1];
     hub.rooms[1].doors[1].keylevel = 1;
 
+    hub.rooms[0].itemCount = 0;
+
+    hub.rooms[1].itemCount = 1;
+    hub.rooms[1].items = malloc(hub.rooms[0].itemCount * sizeof(item));
+    hub.rooms[1].items[0].type = key;
+    hub.rooms[1].items[0].level = 10;
+    hub.rooms[1].items[0].inInventory = 0;
+    hub.rooms[1].items[0].pos.x = 2;
+    hub.rooms[1].items[0].pos.y = 2;
+
     player dude;
     dude.pos = hub.rooms[0].topLeft;
     dude.pos.x += 1;
     dude.pos.y += 1;
-    dude.itemCount = 2;
+
+    dude.itemCount = 10;
     dude.items = malloc(dude.itemCount * sizeof(item));
+
     dude.items[0].type = key;
     dude.items[0].level = 0;
+    dude.items[0].inInventory = 1;
+    dude.items[0].pos.x = 0;
+    dude.items[0].pos.y = 0;
+
     dude.items[1].type = healthpack;
     dude.items[1].level = 0;
+    dude.items[1].inInventory = 1;
+    dude.items[1].pos.x = 0;
+    dude.items[1].pos.y = 0;
+
+    for(int i = 2; i < dude.itemCount; i++) {
+        item *it = &dude.items[i];
+        it->type = empty;
+        it->level = 0;
+        it->inInventory = 1;
+        it->pos.x = 0;
+        it->pos.y = 0;
+    }
 
     /*
         Screen displaying starts here
@@ -132,6 +222,9 @@ int main() {
                 break;
             case 'd':
                 walk.x++;
+                break;
+            case 'e':
+                pickupItem(&dude, &hub);
                 break;
             case 'q':
                 exit = 1;
@@ -201,6 +294,8 @@ int main() {
                 screen[r->topLeft.y + r->doors[j].pos.y][r->topLeft.x + r->doors[j].pos.x] = 'O';
             }
         }
+
+        drawItems(hub.rooms, hub.roomCount, &screen[0][0]);
 
         screen[dude.pos.y][dude.pos.x] = 'X';
 
