@@ -23,7 +23,7 @@ typedef struct level {
     room *rooms;
 } level;
 
-enum itemType { key, thing };
+enum itemType { empty, key, healthpack };
 
 typedef struct item {
     enum itemType type;
@@ -47,14 +47,14 @@ int checkKey(player *p, door *d) {
     item *it;
     for(int i = 0; i < p->itemCount; i++) {
         it = &p->items[i];
-        if(it->type == key && it->level == d->keylevel) {
+        if(it->type == key && it->level >= d->keylevel) {
             return 1;
         }
     }
     return 0;
 }
 
-#define scrnX 40  
+#define scrnX 40
 #define scrnY 23
 char screen[scrnY][scrnX];
 
@@ -101,10 +101,12 @@ int main() {
     dude.pos = hub.rooms[0].topLeft;
     dude.pos.x += 1;
     dude.pos.y += 1;
-    dude.itemCount = 1;
+    dude.itemCount = 2;
     dude.items = malloc(dude.itemCount * sizeof(item));
     dude.items[0].type = key;
     dude.items[0].level = 0;
+    dude.items[1].type = healthpack;
+    dude.items[1].level = 0;
 
     /*
         Screen displaying starts here
@@ -170,7 +172,7 @@ int main() {
                         newpos.y += hub.rooms[m].doors[n].target->parentPos.y;
                         done = 1;
                     } else {
-                        printf("this door requires a level %d key", hub.rooms[m].doors[n].keylevel);
+                        printf("this door requires a level %d key\n", hub.rooms[m].doors[n].keylevel);
                     }
                 }
             }
