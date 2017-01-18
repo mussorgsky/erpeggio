@@ -8,6 +8,7 @@ typedef struct vec2 {
 typedef struct door {
     vec2 pos, parentPos;
     struct door *target;
+    int keylevel;
 } door;
 
 typedef struct room {
@@ -22,8 +23,17 @@ typedef struct level {
     room *rooms;
 } level;
 
+enum itemType { key, thing };
+
+typedef struct item {
+    enum itemType type;
+    int level;
+} item;
+
 typedef struct player {
     vec2 pos;
+    int itemCount;
+    item *items;
 } player;
 
 void initRoom(room *r, int tlX, int tlY, int w, int h) {
@@ -31,6 +41,17 @@ void initRoom(room *r, int tlX, int tlY, int w, int h) {
     r->topLeft.y = tlY;
     r->dimensions.x = w;
     r->dimensions.y = h;
+}
+
+int checkKey(player *p, door *d) {
+    item *it;
+    for(int i = 0; i < p->itemCount; i++) {
+        it = &p->items[i];
+        if(it->type == key && it->level == d->keylevel) {
+            return 1;
+        }
+    }
+    return 0;
 }
 
 #define scrnX 40  
@@ -56,26 +77,34 @@ int main() {
     hub.rooms[0].doors[0].pos.y = 1;
     hub.rooms[0].doors[0].parentPos = hub.rooms[0].topLeft;
     hub.rooms[0].doors[0].target = &hub.rooms[1].doors[0];
+    hub.rooms[0].doors[0].keylevel = 0;
 
     hub.rooms[0].doors[1].pos.x = 5;
     hub.rooms[0].doors[1].pos.y = 2;
     hub.rooms[0].doors[1].parentPos = hub.rooms[0].topLeft;
     hub.rooms[0].doors[1].target = &hub.rooms[1].doors[1];
+    hub.rooms[0].doors[1].keylevel = 1;
 
     hub.rooms[1].doors[0].pos.x = 0;
     hub.rooms[1].doors[0].pos.y = 1;
     hub.rooms[1].doors[0].parentPos = hub.rooms[1].topLeft;
     hub.rooms[1].doors[0].target = &hub.rooms[0].doors[0];
+    hub.rooms[1].doors[0].keylevel = 0;
 
     hub.rooms[1].doors[1].pos.x = 0;
     hub.rooms[1].doors[1].pos.y = 2;
     hub.rooms[1].doors[1].parentPos = hub.rooms[1].topLeft;
     hub.rooms[1].doors[1].target = &hub.rooms[0].doors[1];
+    hub.rooms[1].doors[1].keylevel = 1;
 
     player dude;
     dude.pos = hub.rooms[0].topLeft;
     dude.pos.x += 1;
     dude.pos.y += 1;
+    dude.itemCount = 1;
+    dude.items = malloc(dude.itemCount * sizeof(item));
+    dude.items[0].type = key;
+    dude.items[0].level = 0;
 
     /*
         Screen displaying starts here
@@ -134,11 +163,15 @@ int main() {
                 pos.y += hub.rooms[m].topLeft.y;
 
                 if(dude.pos.x == pos.x && dude.pos.y == pos.y && done != 1) {
-                    printf("doors %d %d\n", m, n);
-                    newpos = hub.rooms[m].doors[n].target->pos;
-                    newpos.x += hub.rooms[m].doors[n].target->parentPos.x;
-                    newpos.y += hub.rooms[m].doors[n].target->parentPos.y;
-                    done = 1;
+                    if(checkKey(&dude, &hub.rooms[m].doors[n])) {
+                        printf("doors %d %d\n", m, n);
+                        newpos = hub.rooms[m].doors[n].target->pos;
+                        newpos.x += hub.rooms[m].doors[n].target->parentPos.x;
+                        newpos.y += hub.rooms[m].doors[n].target->parentPos.y;
+                        done = 1;
+                    } else {
+                        printf("this door requires a level %d key", hub.rooms[m].doors[n].keylevel);
+                    }
                 }
             }
         }

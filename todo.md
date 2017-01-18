@@ -2,10 +2,10 @@
 ## Stuff that still has to be done
 
 1. Doors that require keys to be opened
-  - Item system so you can have keys
-  - Doors that check for keys in the player's inventory
+  - ~~Item system so you can have keys~~
+  - ~~Doors that check for keys in the player's inventory~~
 2. Item system
-  - Typedef for items that has an enum which determines what kind of item it is
+  - ~~Typedef for items that has an enum which determines what kind of item it is~~
   - Further properties are taken from a list, depending on the enum
   - The player's inventory has a fixed size and is always full of items
   - Items can be marked as *empty*
@@ -30,7 +30,7 @@
   - Levels are initialized from a const array that describes the rooms, doors, items, enemies and the player's starting position. The array is constructed as follows
 
     > number of rooms | room1 position | room1 size | number of doors in room1 | door1 position | door1 key level | door1 target | ... | number of items in room1 | item1 type | item1 position | ... | number of enemies in room1 | enemy1 type | enemy1 position | ... | ... |player starting position
-    
+
   ```c
   const int level[] = {2,/* room1 */ 3, 3, 5, 5, 1, 4, 2, 0, 10, 10, 0, /* no items */, 0, /* no enemies */, /* room2 */ 9, 9, 5, 5, 1, 0, 0, 0, 7, 5, 0, /* no items */, 0, /* no enemies */, 4, 4 };
   ```
