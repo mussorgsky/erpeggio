@@ -21,7 +21,7 @@
     - low risk / low reward
     - *etc.*
 4. Enemies
-  - Enemies exist in the world
+  - ~~Enemies exist in the world~~
   - Each has stats assigned from a list that depends on an enum
   - In areas of higher difficulty may roam the land, sometimes deciding to pursuit the player
     - Can only decide to pursuit the player if they're both in the same room
@@ -34,7 +34,7 @@
   ```c
   const int level[] = {2,/* room1 */ 3, 3, 5, 5, 1, 4, 2, 0, 10, 10, 0, /* no items */, 0, /* no enemies */, /* room2 */ 9, 9, 5, 5, 1, 0, 0, 0, 7, 5, 0, /* no items */, 0, /* no enemies */, 4, 4 };
   ```
-  - Rooms that are next to each other with no space between them can be traversed as if they were one
+  - ~~Rooms that are next to each other with no space between them can be traversed as if they were one~~
   - Levels are structured in a way that forces the player to go through a series of rooms to get a key that will allow them to begin again in a different series of rooms.
   - The last key opens the doors to the boss room where a big and tough enemy lives
   - Beating the boss gives you points depending on how many turns it took you to beat them from the start of the level

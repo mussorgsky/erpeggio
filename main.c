@@ -14,6 +14,14 @@ typedef struct door {
     int keylevel;
 } door;
 
+enum enemyType { dead, normal, boss };
+char enemyLetter[] = { '$', 'E', 'B' };
+
+typedef struct enemy {
+    enum enemyType type;
+    vec2 pos;
+} enemy;
+
 enum itemType { empty, key, healthpack };
 char itemLetter[] = { '$', 'k', 'h' };
 
@@ -28,6 +36,8 @@ typedef struct room {
     vec2 topLeft, dimensions;
     int doorCount;
     door *doors;
+    int enemyCount;
+    enemy *enemies;
     int itemCount;
     item *items;
 } room;
@@ -85,6 +95,29 @@ void drawItems(room *rooms, int roomCount, char *screen) {
     }
 }
 
+void drawEnemies(room *rooms, int roomCount, char *screen) {
+    room *r;
+    enemy *en;
+    for(int i = 0; i < roomCount; i++) {
+        r = &rooms[i];
+        for(int j = 0; j < r->enemyCount; j++) {
+            en = &r->enemies[j];
+            if(en->type != dead) {
+                vec2 pos;
+                pos.x = r->topLeft.x + en->pos.x;
+                pos.y = r->topLeft.y + en->pos.y;
+
+                //if(testpos.x >= rPos.x && testpos.x < rSize.x && testpos.y >= rPos.y && testpos.y < rSize.y)
+                if(pos.x >=0 && pos.x < scrnX && pos.y >= 0 && pos.y < scrnY) {
+                    screen[pos.y * scrnX + pos.x] = enemyLetter[en->type];
+                } else {
+                    printf("enemy %d in room %d out of bounds!\n", j, i);
+                }
+            }
+        }
+    }
+}
+
 void pickupItem(player *p, level *l) {
     vec2 pos = p->pos;
     room *r;
@@ -124,14 +157,16 @@ int main() {
     level hub;
     hub.size.x = scrnX;
     hub.size.y = scrnY;
-    hub.roomCount = 2;
+    hub.roomCount = 3;
     hub.rooms = malloc(hub.roomCount * sizeof(room));
 
-    initRoom(&hub.rooms[0], 1, 3, 6, 4);
-    initRoom(&hub.rooms[1], 10, 3, 6, 4);
+    initRoom(&hub.rooms[0], 1, 1, 6, 4);
+    initRoom(&hub.rooms[1], 10, 1, 6, 4);
+    initRoom(&hub.rooms[2], 1, 5, 2, 2);
 
     hub.rooms[0].doorCount = 2;
     hub.rooms[1].doorCount = 2;
+    hub.rooms[2].doorCount = 0;
     hub.rooms[0].doors = malloc(hub.rooms[0].doorCount * sizeof(door));
     hub.rooms[1].doors = malloc(hub.rooms[1].doorCount * sizeof(door));
 
@@ -168,6 +203,19 @@ int main() {
     hub.rooms[1].items[0].inInventory = 0;
     hub.rooms[1].items[0].pos.x = 2;
     hub.rooms[1].items[0].pos.y = 2;
+
+    hub.rooms[2].itemCount = 0;
+
+    hub.rooms[0].enemyCount = 0;
+    hub.rooms[0].enemies = malloc(hub.rooms[0].enemyCount * sizeof(enemy));
+    hub.rooms[1].enemyCount = 1;
+    hub.rooms[1].enemies = malloc(hub.rooms[1].enemyCount * sizeof(enemy));
+
+    hub.rooms[1].enemies[0].type = normal;
+    hub.rooms[1].enemies[0].pos.x = 2;
+    hub.rooms[1].enemies[0].pos.y = 1;
+
+    hub.rooms[2].enemyCount = 0;
 
     player dude;
     dude.pos = hub.rooms[0].topLeft;
@@ -296,6 +344,7 @@ int main() {
         }
 
         drawItems(hub.rooms, hub.roomCount, &screen[0][0]);
+        drawEnemies(hub.rooms, hub.roomCount, &screen[0][0]);
 
         screen[dude.pos.y][dude.pos.x] = 'X';
 
