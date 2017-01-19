@@ -23,13 +23,13 @@
 4. Enemies
   - ~~Enemies exist in the world~~
   - Each has stats assigned from a list that depends on an enum
-  - In areas of higher difficulty may roam the land, sometimes deciding to pursuit the player
-    - Can only decide to pursuit the player if they're both in the same room
+  - ~~In areas of higher difficulty may roam the land, sometimes deciding to pursuit the player~~
+    - ~~Can only decide to pursuit the player if they're both in the same room~~
     - If the player is over-powered for the current area, enemies may run away from themselves
 5. World
   - ~~Levels are initialized from a const array that describes the rooms, doors, items, enemies and the player's starting position. The array is constructed as follows~~
 
-    > ~~level size | number of rooms | room1 position | room1 size | number of doors in room1 | door1 position | door1 key level | door1 target | ... | number of items in room1 | item1 type | item1 level | item1 position | ... | number of enemies in room1 | enemy1 type | enemy1 position | ... | ... | player starting position~~
+    > ~~level size | number of rooms | room1 position | room1 size | number of doors in room1 | door1 position | door1 key level | door1 target | ... | number of items in room1 | item1 type | item1 level | item1 position | ... | number of enemies in room1 | enemy1 type | enemy1 position | enemy level | ... | ... | player starting position | player level~~
 
   ```c
   const int level[] = {2,/* room1 */ 3, 3, 5, 5, 1, 4, 2, 0, 10, 10, 0, /* no items */, 0, /* no enemies */, /* room2 */ 9, 9, 5, 5, 1, 0, 0, 0, 7, 5, 0, /* no items */, 0, /* no enemies */, 4, 4 };

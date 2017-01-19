@@ -9,7 +9,7 @@ typedef struct vec2 {
 } vec2;
 
 typedef struct door {
-    vec2 pos, parentPos, targoo;
+    vec2 pos, parentPos, pretarget;
     struct door *target;
     int keylevel;
 } door;
@@ -20,6 +20,7 @@ char enemyLetter[] = { '$', 'E', 'B' };
 typedef struct enemy {
     enum enemyType type;
     vec2 pos;
+    int level;
 } enemy;
 
 enum itemType { empty, key, healthpack };
@@ -52,6 +53,7 @@ typedef struct player {
     vec2 pos;
     int itemCount;
     item *items;
+    int level;
 } player;
 
 void initRoom(room *r, int tlX, int tlY, int w, int h) {
@@ -59,6 +61,25 @@ void initRoom(room *r, int tlX, int tlY, int w, int h) {
     r->topLeft.y = tlY;
     r->dimensions.x = w;
     r->dimensions.y = h;
+}
+
+vec2 globalPosFromRoom(vec2 pos, room *r) {
+    vec2 result;
+    result.x = r->topLeft.x + pos.x;
+    result.y = r->topLeft.y + pos.y;
+    return result;
+}
+
+room* findRoomFromPos(vec2 pos, room *r, int roomCount) {
+    for(int i = 0; i < roomCount; i++) {
+        vec2 tl = r[i].topLeft;
+        vec2 br = tl;
+        br.x += r[i].dimensions.x;
+        br.y += r[i].dimensions.y;
+        if(pos.x >= tl.x && pos.x < br.x && pos.x >= tl.y & pos.y < br.y) {
+            return &r[i];
+        }
+    }
 }
 
 int checkKey(player *p, door *d) {
@@ -80,11 +101,7 @@ void drawItems(room *rooms, int roomCount, char *screen) {
         for(int j = 0; j < r->itemCount; j++) {
             it = &r->items[j];
             if(it->type != empty && !it->inInventory) {
-                vec2 pos;
-                pos.x = r->topLeft.x + it->pos.x;
-                pos.y = r->topLeft.y + it->pos.y;
-
-                //if(testpos.x >= rPos.x && testpos.x < rSize.x && testpos.y >= rPos.y && testpos.y < rSize.y)
+                vec2 pos = globalPosFromRoom(it->pos, r);
                 if(pos.x >=0 && pos.x < scrnX && pos.y >= 0 && pos.y < scrnY) {
                     screen[pos.y * scrnX + pos.x] = itemLetter[it->type];
                 } else {
@@ -103,11 +120,7 @@ void drawEnemies(room *rooms, int roomCount, char *screen) {
         for(int j = 0; j < r->enemyCount; j++) {
             en = &r->enemies[j];
             if(en->type != dead) {
-                vec2 pos;
-                pos.x = r->topLeft.x + en->pos.x;
-                pos.y = r->topLeft.y + en->pos.y;
-
-                //if(testpos.x >= rPos.x && testpos.x < rSize.x && testpos.y >= rPos.y && testpos.y < rSize.y)
+                vec2 pos = globalPosFromRoom(en->pos, r);
                 if(pos.x >=0 && pos.x < scrnX && pos.y >= 0 && pos.y < scrnY) {
                     screen[pos.y * scrnX + pos.x] = enemyLetter[en->type];
                 } else {
@@ -123,11 +136,8 @@ void pickupItem(player *p, level *l) {
     room *r;
     for(int i = 0; i < l->roomCount; i++) {
         r = &l->rooms[i];
-        vec2 ipos;
         for(int j = 0; j < r->itemCount; j++) {
-            ipos = r->items[j].pos;
-            ipos.x += r->topLeft.x;
-            ipos.y += r->topLeft.y;
+            vec2 ipos = globalPosFromRoom(r->items[j].pos, r);
             if(ipos.x = pos.x && ipos.y == pos.y) {
                 int done = 0;
                 switch(r->items[j].type) {
@@ -155,7 +165,7 @@ char screen[scrnY][scrnX];
 
 const int levelDef[] = {
     /* level size */ scrnX, scrnY,
-    /* rooms */ 3,
+    /* rooms */ 4,
         /* room 1 */ 1, 1, 6, 4,
             /* doors in room 1 */ 2,
                 /* door 1 */ 5, 1, 0, /* target [room], [door] */ 1, 0,
@@ -164,14 +174,14 @@ const int levelDef[] = {
                 /* no items in room 1 */
             /* enemies in room 1*/ 0,
                 /* no enemies in room 1 */
-        /* room 2 */ 10, 1, 6, 4,
+        /* room 2 */ 10, 1, 15, 4,
             /* doors in room 2 */ 2,
                 /* door 1 */ 0, 1, 0, 0, 0,
                 /* door 2 */ 0, 2, 1, 0, 1,
             /* items in room 2 */ 1,
                 /* item 1 */ 1, 10, 2, 2,
             /* enemies in room 2 */ 1,
-                /* enemy 1 */ 1, 2, 1,
+                /* enemy 1 */ 1, 8, 1, 10,
         /* room 3 */ 1, 5, 2, 2,
             /* doors in room 3 */ 0,
                 /* no doors in room 3 */
@@ -179,7 +189,8 @@ const int levelDef[] = {
                 /* no items in room 3 */
             /* enemies */ 0,
                 /* no enemies in room 3 */
-    /* player position */ 1, 1
+        /* room 4 */ 10, 5, 6, 3, 0, 0, 0,
+    /* player */ 1, 1, 1
 };
 
 const int levelDefoo[] = {
@@ -192,8 +203,8 @@ const int levelDefoo[] = {
             /* items in room 1 */ 1,
                 /* item 1*/ 1, 10, 2, 2,
             /* enemies in room 1*/ 1,
-                /* enemy 1 */ 1, 3, 3,
-    /* player position */ 1, 1
+                /* enemy 1 */ 1, 3, 3, 10,
+    /* player */ 1, 1, 1
 };
 
 void initLevel(level *l, player *p, const int *def) {
@@ -223,8 +234,8 @@ void initLevel(level *l, player *p, const int *def) {
             l->rooms[i].doors[j].pos.x = def[seeker++];
             l->rooms[i].doors[j].pos.y = def[seeker++];
             l->rooms[i].doors[j].keylevel = def[seeker++];
-            l->rooms[i].doors[j].targoo.x = def[seeker++];
-            l->rooms[i].doors[j].targoo.y = def[seeker++];
+            l->rooms[i].doors[j].pretarget.x = def[seeker++];
+            l->rooms[i].doors[j].pretarget.y = def[seeker++];
             l->rooms[i].doors[j].parentPos = l->rooms[i].topLeft;
             printf("\t\tdoor %d initialized\n", j);
         }
@@ -249,6 +260,7 @@ void initLevel(level *l, player *p, const int *def) {
             l->rooms[i].enemies[j].type = def[seeker++];
             l->rooms[i].enemies[j].pos.x = def[seeker++];
             l->rooms[i].enemies[j].pos.y = def[seeker++];
+            l->rooms[i].enemies[j].level = def[seeker++];
             printf("\t\tenemy %d initialized\n", j);
         }
     }
@@ -257,10 +269,11 @@ void initLevel(level *l, player *p, const int *def) {
     p->pos.x += def[seeker++];
     p->pos.y += def[seeker++];
     printf("player position set\n\n");
+    p->level = def[seeker++];
 
     for(int i = 0; i < l->roomCount; i++) {
         for(int j = 0; j < l->rooms[i].doorCount; j++) {
-            vec2 target = l->rooms[i].doors[j].targoo;
+            vec2 target = l->rooms[i].doors[j].pretarget;
             l->rooms[i].doors[j].target = &l->rooms[target.x].doors[target.y];
             printf("door %d %d target set\n", i, j);
         }
@@ -371,6 +384,32 @@ int main() {
 
         done = 0;
         dude.pos = newpos;
+
+        // update enemies in the room occupied by the player
+        room *enroom = findRoomFromPos(dude.pos, hub.rooms, hub.roomCount);
+        for(int i = 0; i < enroom->enemyCount; i++) {
+            enemy *en = &enroom->enemies[i];
+            int chasing = en->level >= dude.level;
+            if(chasing) {
+                vec2 globPos = globalPosFromRoom(en->pos, enroom);
+                vec2 newEnPos = en->pos;
+
+                if(globPos.x < dude.pos.x) {
+                    newEnPos.x++;
+                } else if(globPos.x > dude.pos.x) {
+                    newEnPos.x--;
+                } else if(globPos.y < dude.pos.y) {
+                    newEnPos.y++;
+                } else if(globPos.y > dude.pos.y) {
+                    newEnPos.y--;
+                }
+
+                vec2 dims = enroom->dimensions;
+                if(newEnPos.x >= 0 && newEnPos.x < dims.x && newEnPos.y >= 0 && newEnPos.y < dims.y) {
+                    en->pos = newEnPos;
+                }
+            }
+        }
 
         int x, y, i, j;
         for(y = 0; y < scrnY; y++) {
