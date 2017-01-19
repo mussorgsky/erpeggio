@@ -12,10 +12,10 @@
   - ~~Items can exist in the world by themselves~~
   - ~~Items can be picked up by the player to their inventory~~
 3. Fight system
-  - Fighters have a limited amount of stamina, which regenerates slowly
-  - Each attack costs stamina and have a random chance of missing their target
-  - Successful attacks remove some of the victim's health
-  - Fights continue until one of the participants is dead
+  - ~~Fighters have a limited amount of stamina, which regenerates slowly~~
+  - ~~Each attack costs stamina and have a random chance of missing their target~~
+  - ~~Successful attacks remove some of the victim's health~~
+  - ~~Fights continue until one of the participants is dead~~
   - Different types of attack are available
     - high risk / high reward
     - low risk / low reward

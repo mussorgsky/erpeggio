@@ -14,6 +14,14 @@ typedef struct door {
     int keylevel;
 } door;
 
+typedef struct attack {
+    int dmg, cost, chance;
+} attack;
+
+typedef struct stat {
+    int health, maxHealth, maxStamina, stamina, stRegen;
+} stat;
+
 enum enemyType { dead, normal, boss };
 char enemyLetter[] = { '$', 'E', 'B' };
 
@@ -21,6 +29,7 @@ typedef struct enemy {
     enum enemyType type;
     vec2 pos;
     int level;
+    stat stats;
 } enemy;
 
 enum itemType { empty, key, healthpack };
@@ -54,6 +63,7 @@ typedef struct player {
     int itemCount;
     item *items;
     int level;
+    stat stats;
 } player;
 
 void initRoom(room *r, int tlX, int tlY, int w, int h) {
@@ -76,10 +86,11 @@ room* findRoomFromPos(vec2 pos, room *r, int roomCount) {
         vec2 br = tl;
         br.x += r[i].dimensions.x;
         br.y += r[i].dimensions.y;
-        if(pos.x >= tl.x && pos.x < br.x && pos.x >= tl.y & pos.y < br.y) {
+        if(pos.x >= tl.x && pos.x < br.x && pos.y >= tl.y & pos.y < br.y) {
             return &r[i];
         }
     }
+    printf("cant find a room oh no\n");
 }
 
 int checkKey(player *p, door *d) {
@@ -182,7 +193,7 @@ const int levelDef[] = {
                 /* item 1 */ 1, 10, 2, 2,
             /* enemies in room 2 */ 1,
                 /* enemy 1 */ 1, 8, 1, 10,
-        /* room 3 */ 1, 5, 2, 2,
+        /* room 3 */ 1, 5, 3, 2,
             /* doors in room 3 */ 0,
                 /* no doors in room 3 */
             /* items */ 0,
@@ -261,6 +272,12 @@ void initLevel(level *l, player *p, const int *def) {
             l->rooms[i].enemies[j].pos.x = def[seeker++];
             l->rooms[i].enemies[j].pos.y = def[seeker++];
             l->rooms[i].enemies[j].level = def[seeker++];
+
+            l->rooms[i].enemies[j].stats.health = 100;
+            l->rooms[i].enemies[j].stats.maxHealth = 100;
+            l->rooms[i].enemies[j].stats.maxStamina = 100;
+            l->rooms[i].enemies[j].stats.stamina = 100;
+            l->rooms[i].enemies[j].stats.stRegen = 5;
             printf("\t\tenemy %d initialized\n", j);
         }
     }
@@ -281,9 +298,15 @@ void initLevel(level *l, player *p, const int *def) {
 }
 
 int main() {
+    srand(NULL);
     level hub;
     player dude;
     initLevel(&hub, &dude, &levelDef[0]);
+
+    attack atNormal;
+    atNormal.dmg = 10;
+    atNormal.cost = 10;
+    atNormal.chance = 75;
 
     dude.itemCount = 10;
     dude.items = malloc(dude.itemCount * sizeof(item));
@@ -293,6 +316,12 @@ int main() {
     dude.items[0].inInventory = 1;
     dude.items[0].pos.x = 0;
     dude.items[0].pos.y = 0;
+
+    dude.stats.health = 100;
+    dude.stats.maxHealth = 100;
+    dude.stats.maxStamina = 100;
+    dude.stats.stamina = 100;
+    dude.stats.stRegen = 5;
 
     dude.items[1].type = healthpack;
     dude.items[1].level = 0;
@@ -313,135 +342,205 @@ int main() {
         Screen displaying starts here
     */
     int exit = 0;
+    int fight = 0;
     char input[140];
+
+    enemy *fighter;
+
     do {
-        scanf(" %s", &input);
-        vec2 walk;
-        walk.x = 0;
-        walk.y = 0;
-        switch(input[0]) {
-            default:
-                break;
-            case 'w':
-                walk.y--;
-                break;
-            case 's':
-                walk.y++;
-                break;
-            case 'a':
-                walk.x--;
-                break;
-            case 'd':
-                walk.x++;
-                break;
-            case 'e':
-                pickupItem(&dude, &hub);
-                break;
-            case 'q':
-                exit = 1;
-                break;
-        }
-
-        vec2 testpos = dude.pos;
-        testpos.x += walk.x;
-        testpos.y += walk.y;
-        if(testpos.x >= 0 && testpos.y >= 0 && testpos.x < scrnX && testpos.y < scrnY) {
-            for(int i = 0; i < hub.roomCount; i++) {
-                vec2 rPos = hub.rooms[i].topLeft;
-                vec2 rSize = hub.rooms[i].dimensions;
-                rSize.x += rPos.x;
-                rSize.y += rPos.y;
-                if(testpos.x >= rPos.x && testpos.x < rSize.x && testpos.y >= rPos.y && testpos.y < rSize.y) {
-                    dude.pos.x += walk.x;
-                    dude.pos.y += walk.y;
+        if(!fight) {
+            scanf(" %s", &input);
+            vec2 walk;
+            walk.x = 0;
+            walk.y = 0;
+            switch(input[0]) {
+                default:
                     break;
-                }
+                case 'w':
+                    walk.y--;
+                    break;
+                case 's':
+                    walk.y++;
+                    break;
+                case 'a':
+                    walk.x--;
+                    break;
+                case 'd':
+                    walk.x++;
+                    break;
+                case 'e':
+                    pickupItem(&dude, &hub);
+                    break;
+                case 'q':
+                    exit = 1;
+                    break;
             }
-        }
 
-        int m, n;
-        int done = 0;
-        vec2 newpos = dude.pos;
-        for(m = 0; m < hub.roomCount; m++) {
-            for(n = 0; n < hub.rooms[m].doorCount; n++) {
-                vec2 pos = hub.rooms[m].doors[n].pos;
-                pos.x += hub.rooms[m].topLeft.x;
-                pos.y += hub.rooms[m].topLeft.y;
-
-                if(dude.pos.x == pos.x && dude.pos.y == pos.y && done != 1) {
-                    if(checkKey(&dude, &hub.rooms[m].doors[n])) {
-                        printf("doors %d %d\n", m, n);
-                        newpos = hub.rooms[m].doors[n].target->pos;
-                        newpos.x += hub.rooms[m].doors[n].target->parentPos.x;
-                        newpos.y += hub.rooms[m].doors[n].target->parentPos.y;
-                        done = 1;
-                    } else {
-                        printf("this door requires a level %d key\n", hub.rooms[m].doors[n].keylevel);
+            vec2 testpos = dude.pos;
+            testpos.x += walk.x;
+            testpos.y += walk.y;
+            printf("testing rooms for wall collisions\n");
+            if(testpos.x >= 0 && testpos.y >= 0 && testpos.x < scrnX && testpos.y < scrnY) {
+                for(int i = 0; i < hub.roomCount; i++) {
+                    vec2 rPos = hub.rooms[i].topLeft;
+                    vec2 rSize = hub.rooms[i].dimensions;
+                    rSize.x += rPos.x;
+                    rSize.y += rPos.y;
+                    if(testpos.x >= rPos.x && testpos.x < rSize.x && testpos.y >= rPos.y && testpos.y < rSize.y) {
+                        dude.pos.x += walk.x;
+                        dude.pos.y += walk.y;
+                        break;
                     }
                 }
             }
-        }
+            printf("\tdone\n");
 
-        done = 0;
-        dude.pos = newpos;
+            int m, n;
+            int done = 0;
+            vec2 newpos = dude.pos;
+            printf("testing rooms for doors\n");
+            for(m = 0; m < hub.roomCount; m++) {
+                for(n = 0; n < hub.rooms[m].doorCount; n++) {
+                    vec2 pos = hub.rooms[m].doors[n].pos;
+                    pos.x += hub.rooms[m].topLeft.x;
+                    pos.y += hub.rooms[m].topLeft.y;
 
-        // update enemies in the room occupied by the player
-        room *enroom = findRoomFromPos(dude.pos, hub.rooms, hub.roomCount);
-        for(int i = 0; i < enroom->enemyCount; i++) {
-            enemy *en = &enroom->enemies[i];
-            int chasing = en->level >= dude.level;
-            if(chasing) {
-                vec2 globPos = globalPosFromRoom(en->pos, enroom);
-                vec2 newEnPos = en->pos;
-
-                if(globPos.x < dude.pos.x) {
-                    newEnPos.x++;
-                } else if(globPos.x > dude.pos.x) {
-                    newEnPos.x--;
-                } else if(globPos.y < dude.pos.y) {
-                    newEnPos.y++;
-                } else if(globPos.y > dude.pos.y) {
-                    newEnPos.y--;
-                }
-
-                vec2 dims = enroom->dimensions;
-                if(newEnPos.x >= 0 && newEnPos.x < dims.x && newEnPos.y >= 0 && newEnPos.y < dims.y) {
-                    en->pos = newEnPos;
+                    if(dude.pos.x == pos.x && dude.pos.y == pos.y && done != 1) {
+                        if(checkKey(&dude, &hub.rooms[m].doors[n])) {
+                            printf("doors %d %d\n", m, n);
+                            newpos = hub.rooms[m].doors[n].target->pos;
+                            newpos.x += hub.rooms[m].doors[n].target->parentPos.x;
+                            newpos.y += hub.rooms[m].doors[n].target->parentPos.y;
+                            done = 1;
+                        } else {
+                            printf("this door requires a level %d key\n", hub.rooms[m].doors[n].keylevel);
+                        }
+                    }
                 }
             }
-        }
+            printf("\tdone\n");
 
-        int x, y, i, j;
-        for(y = 0; y < scrnY; y++) {
-            for(x = 0; x < scrnX; x++) {
-                screen[y][x] = '.';
+            done = 0;
+            dude.pos = newpos;
+
+            printf("updating enemies\n");
+            // update enemies in the room occupied by the player
+            room *enroom = findRoomFromPos(dude.pos, hub.rooms, hub.roomCount);
+            //room *enroom = &hub.rooms[2];
+            for(int i = 0; i < enroom->enemyCount; i++) {
+                enemy *en = &enroom->enemies[i];
+                if(en->type != dead) {
+                    int chasing = en->level >= dude.level;
+                    vec2 globPos = globalPosFromRoom(en->pos, enroom);
+                    vec2 newEnPos = en->pos;
+                    if(chasing) {
+                        if(globPos.x < dude.pos.x) {
+                            newEnPos.x++;
+                        } else if(globPos.x > dude.pos.x) {
+                            newEnPos.x--;
+                        } else if(globPos.y < dude.pos.y) {
+                            newEnPos.y++;
+                        } else if(globPos.y > dude.pos.y) {
+                            newEnPos.y--;
+                        }
+
+                        vec2 dims = enroom->dimensions;
+                        if(newEnPos.x >= 0 && newEnPos.x < dims.x && newEnPos.y >= 0 && newEnPos.y < dims.y) {
+                            en->pos = newEnPos;
+                            globPos = globalPosFromRoom(en->pos, enroom);
+                        }
+                    }
+                    if(globPos.x == dude.pos.x && globPos.y == dude.pos.y) {
+                        fighter = en;
+                        fight = 1;
+                    }
+                }
             }
-        }
+            printf("\tdone\n");
 
-        room *r;
-        for(i = 0; i < hub.roomCount; i++) {
-            r = &hub.rooms[i];
-            for(y = r->topLeft.y; y < r->topLeft.y + r->dimensions.y; y++) {
-                for(x = r->topLeft.x; x < r->topLeft.x + r->dimensions.x; x++) {
-                    screen[y][x] = ' ';
+            int x, y, i, j;
+            for(y = 0; y < scrnY; y++) {
+                for(x = 0; x < scrnX; x++) {
+                    screen[y][x] = '.';
                 }
             }
 
-            for(j = 0; j < r->doorCount; j++) {
-                screen[r->topLeft.y + r->doors[j].pos.y][r->topLeft.x + r->doors[j].pos.x] = 'O';
+            room *r;
+            for(i = 0; i < hub.roomCount; i++) {
+                r = &hub.rooms[i];
+                for(y = r->topLeft.y; y < r->topLeft.y + r->dimensions.y; y++) {
+                    for(x = r->topLeft.x; x < r->topLeft.x + r->dimensions.x; x++) {
+                        screen[y][x] = ' ';
+                    }
+                }
+
+                for(j = 0; j < r->doorCount; j++) {
+                    screen[r->topLeft.y + r->doors[j].pos.y][r->topLeft.x + r->doors[j].pos.x] = 'O';
+                }
             }
-        }
 
-        drawItems(hub.rooms, hub.roomCount, &screen[0][0]);
-        drawEnemies(hub.rooms, hub.roomCount, &screen[0][0]);
+            drawItems(hub.rooms, hub.roomCount, &screen[0][0]);
+            drawEnemies(hub.rooms, hub.roomCount, &screen[0][0]);
 
-        screen[dude.pos.y][dude.pos.x] = 'X';
+            screen[dude.pos.y][dude.pos.x] = 'X';
 
-        for(y = 0; y < scrnY; y++) {
-            for(x = 0; x < scrnX; x++) {
-                printf("%c", screen[y][x]);
+            for(y = 0; y < scrnY; y++) {
+                for(x = 0; x < scrnX; x++) {
+                    printf("%c", screen[y][x]);
+                }
+                printf("\n");
             }
-            printf("\n");
+        } else {
+            char xd;
+            while(dude.stats.health > 0 && fighter->stats.health > 0) {
+                //players turn
+                printf("it\'s your turn\n");
+                printf("hp: %d\t stam: %d", dude.stats.health, dude.stats.stamina);
+                printf("\t\t\thp: %d\t stam: %d\n", fighter->stats.health, fighter->stats.stamina);
+                scanf(" %c", &xd);
+                if(dude.stats.stamina >= atNormal.cost) {
+                    dude.stats.stamina -= atNormal.cost;
+                    if(rand() % 100 >= atNormal.chance) {
+                        printf("your attack success\n");
+                        fighter->stats.health -= atNormal.dmg;
+                    } else {
+                        printf("your attack failed\n");
+                    }
+                } else {
+                    printf("you not enough stamina\n");
+                }
+                dude.stats.stamina += dude.stats.stRegen;
+                if(dude.stats.stamina > dude.stats.maxStamina) {
+                    dude.stats.stamina = dude.stats.maxStamina;
+                }
+                
+                //enemies turn
+                if(fighter->stats.stamina >= atNormal.cost) {
+                    fighter->stats.stamina -= atNormal.cost;
+                    if(rand() % 100 >= atNormal.chance) {
+                        printf("enemys attack success\n");
+                        dude.stats.health -= atNormal.dmg;
+                    } else {
+                        printf("enemys attack failed\n");
+                    }
+                } else {
+                    printf("enemy not enough stamina\n");
+                }
+                fighter->stats.stamina += fighter->stats.stRegen;
+                if(fighter->stats.stamina > fighter->stats.maxStamina) {
+                    fighter->stats.stamina = fighter->stats.maxStamina;
+                }
+            }
+            printf("hp: %d\t stam: %d", dude.stats.health, dude.stats.stamina);
+            printf("\t\t\thp: %d\t stam: %d\n", fighter->stats.health, fighter->stats.stamina);
+            if(dude.stats.health > 0) {
+                printf("you won the battle\n");
+                fighter->type = dead;
+            } else {
+                printf("you lost\n");
+                exit = 1;
+            }
+            fight = 0;
         }
     } while(!exit);
 
