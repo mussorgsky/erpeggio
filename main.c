@@ -225,35 +225,40 @@ const int levelDef[] = {
                 0, 1, 0, 0, 1,
                 4, 1, 2, 2, 0,
             1,
-                1, 1, 2, 2,
+                1, 1, 1, 1,
             1,
-                3, 1, 1, 1,
+                1, 2, 1, 1,
         27, 2, 7, 4,
             1,
                 0, 1, 2, 1, 1,
             1,
                 1, 3, 5, 2,
-            0,
+            1,
+                1, 5, 1, 1,
         9, 2, 5, 4,
             2,
                 4, 1, 1, 0, 0,
                 0, 1, 3, 4, 0,
             1,
                 1, 2, 2, 2,
-            0,
+            1,
+                1, 2, 1, 1,
         1, 2, 7, 4,
             2,
                 6, 1, 3, 3, 1,
                 1, 3, 6, 5, 0,
             1,
                 1, 4, 1, 1,
-            0,
+            1,
+                1, 3, 1, 1,
         1, 7, 7, 5,
             1,
                 1, 0, 6, 4, 1,
             1,
                 1, 7, 5, 3,
-            0,
+            2,
+                2, 5, 1, 1,
+                2, 3, 3, 1,
         15, 6, 5, 7,
             4,
                 2, 0, 4, 0, 2,
@@ -267,24 +272,32 @@ const int levelDef[] = {
                 0, 2, 4, 6, 2,
             1,
                 1, 5, 3, 2,
-            0,
+            2,
+                2, 2, 0, 1,
+                2, 2, 4, 1,
         9, 7, 5, 5,
             1,
                 4, 2, 5, 6, 1,
             1,
                 1, 6, 1, 2,
-            0,
+            2,
+                2, 2, 0, 1,
+                2, 2, 4, 1,
         16, 14, 10, 3,
             2,
                 1, 0, 7, 6, 3,
                 9, 1, 7, 10, 0,
             0,
-            0,
+            2,
+                1, 3, 1, 1,
+                2, 7, 1, 1,
         27, 7, 7, 10,
             1,
                 0, 8, 7, 9, 1,
             0,
-            0,
+            2,
+                2, 3, 5, 1,
+                3, 3, 2, 1,
     2, 1, 10
 };
 
@@ -449,10 +462,22 @@ int main() {
 
     enemy *fighter;
 
+    printf("\n\n\n\n\n\n\n\n\n\n\nWelcome to the game\n\n");
+    printf("You are the X and your mission is to kill the Big Bad Boss (B)\n");
+    printf("You have to gather keys (k) to go to different rooms through doors (O)\n");
+    printf("On your way you will fight different enemies (w, e, E)\n");
+    printf("\nThe controls are:\n\tmovement\tw s a d\n\tpick up key\te\n\tshow key level\tk\n\tshow turn\tt\n\tquit game\tq\n");
+    printf("\nIn fight mode:\n\tattack\t\tw n h\n");
+    printf("\nAll commands must be confirmed with the return key\n");
+    printf("\n\tinput any command to continue\n");
+
     do {
         turns++;
         if(!fight) {
             scanf(" %c", &input);
+            if(turns == 1) {
+               input = 'x';
+            }
             cleanScanf();
             vec2 walk;
             walk.x = 0;
@@ -479,7 +504,10 @@ int main() {
                     exit = 1;
                     break;
                 case 'k':
+                    changeColor(dude.items[0].level);
                     printf("you have a level %d key\n", dude.items[0].level);
+                    changeColor(0);
+                    break;
                 case 't':
                     printf("you are currently on turn %d\n", turns);
                     break;
@@ -633,6 +661,10 @@ int main() {
                         break;
                     case 'h':
                         at = &atHard;
+                        break;
+                    case 'q':
+                        at = &atNormal;
+                        dude.stats.health = 0;
                         break;
                 }
                 if(dude.stats.stamina >= at->cost) {
