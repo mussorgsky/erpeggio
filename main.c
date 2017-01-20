@@ -2,8 +2,8 @@
 #include <stdlib.h>
 #include <time.h>
 
-#define scrnX 30
-#define scrnY 10
+#define scrnX 36
+#define scrnY 18
 
 typedef struct vec2 {
     int x, y;
@@ -51,6 +51,7 @@ typedef struct room {
     enemy *enemies;
     int itemCount;
     item *items;
+    int visited;
 } room;
 
 typedef struct level {
@@ -105,7 +106,7 @@ int checkKey(player *p, door *d) {
     return 0;
 }
 
-void drawItems(room *rooms, int roomCount, char *screen) {
+void drawItems(room *rooms, int roomCount, char *screen, char *colors) {
     room *r;
     item *it;
     for(int i = 0; i < roomCount; i++) {
@@ -116,6 +117,7 @@ void drawItems(room *rooms, int roomCount, char *screen) {
                 vec2 pos = globalPosFromRoom(it->pos, r);
                 if(pos.x >=0 && pos.x < scrnX && pos.y >= 0 && pos.y < scrnY) {
                     screen[pos.y * scrnX + pos.x] = itemLetter[it->type];
+                    colors[pos.y * scrnX + pos.x] = it->level;
                 } else {
                     printf("item %d in room %d out of bounds!\n", j, i);
                 }
@@ -124,7 +126,7 @@ void drawItems(room *rooms, int roomCount, char *screen) {
     }
 }
 
-void drawEnemies(room *rooms, int roomCount, char *screen) {
+void drawEnemies(room *rooms, int roomCount, char *screen, char *colors) {
     room *r;
     enemy *en;
     for(int i = 0; i < roomCount; i++) {
@@ -135,6 +137,7 @@ void drawEnemies(room *rooms, int roomCount, char *screen) {
                 vec2 pos = globalPosFromRoom(en->pos, r);
                 if(pos.x >=0 && pos.x < scrnX && pos.y >= 0 && pos.y < scrnY) {
                     screen[pos.y * scrnX + pos.x] = enemyLetter[en->type];
+                    colors[pos.y * scrnX + pos.x] = en->level;
                 } else {
                     printf("enemy %d in room %d out of bounds!\n", j, i);
                 }
@@ -143,39 +146,150 @@ void drawEnemies(room *rooms, int roomCount, char *screen) {
     }
 }
 
-void pickupItem(player *p, level *l) {
+void pickupItem(player *p, room *r) {
     vec2 pos = p->pos;
-    room *r;
-    for(int i = 0; i < l->roomCount; i++) {
-        r = &l->rooms[i];
-        for(int j = 0; j < r->itemCount; j++) {
-            vec2 ipos = globalPosFromRoom(r->items[j].pos, r);
-            if(ipos.x = pos.x && ipos.y == pos.y) {
-                int done = 0;
-                switch(r->items[j].type) {
-                    default:
-                        break;
-                    case key:
-                        for(int k = 0; k < p->itemCount && !done; k++) {
-                            if(p->items[k].type == key) {
-                                p->items[k].level = r->items[j].level;
-                                r->items[j].type = empty;
-                                printf("picked up level %d key\n", r->items[j].level);
-                                done = 1;
-                            }
+    
+    for(int j = 0; j < r->itemCount; j++) {
+        vec2 ipos = globalPosFromRoom(r->items[j].pos, r);
+        if(ipos.x = pos.x && ipos.y == pos.y) {
+            int done = 0;
+            switch(r->items[j].type) {
+                default:
+                    break;
+                case key:
+                    for(int k = 0; k < p->itemCount && !done; k++) {
+                        if(p->items[k].type == key) {
+                            p->items[k].level = r->items[j].level;
+                            r->items[j].type = empty;
+                            printf("picked up level %d key\n", r->items[j].level);
+                            done = 1;
                         }
-                        break;
-                    case healthpack:
-                        break;
-                }
+                    }
+                    break;
+                case healthpack:
+                    break;
             }
         }
     }
 }
 
+void changeColor(int c) {
+    switch(c) {
+        default:
+            printf("\x1b[0m");
+            break;            
+        case 1:
+            printf("\x1b[0m");        
+            printf("\x1b[1m");
+            break;
+        case 2:
+            printf("\x1b[1m");
+            printf("\x1b[31m");
+            break;
+        case 3:
+            printf("\x1b[1m");
+            printf("\x1b[32m");
+            break;
+        case 4:
+            printf("\x1b[1m");
+            printf("\x1b[33m");
+            break;
+        case 5:
+            printf("\x1b[1m");
+            printf("\x1b[34m");
+            break;
+        case 6:
+            printf("\x1b[1m");
+            printf("\x1b[35m");
+            break;
+        case 7:
+            printf("\x1b[1m");
+            printf("\x1b[36m");
+            break;
+    }
+}
+
 char screen[scrnY][scrnX];
+char colors[scrnY][scrnX];
 
 const int levelDef[] = {
+    scrnX, scrnY,
+    11,
+        15, 1, 5, 4,
+            3,
+                0, 2, 1, 3, 0,
+                4, 2, 0, 1, 0,
+                2, 3, 4, 6, 0,
+            0,
+            0,
+        21, 2, 5, 4,
+            2,
+                0, 1, 0, 0, 1,
+                4, 1, 2, 2, 0,
+            1,
+                1, 1, 2, 2,
+            0,
+        27, 2, 7, 4,
+            1,
+                0, 1, 2, 1, 1,
+            1,
+                1, 3, 5, 2,
+            0,
+        9, 2, 5, 4,
+            2,
+                4, 1, 1, 0, 0,
+                0, 1, 3, 4, 0,
+            1,
+                1, 2, 2, 2,
+            0,
+        1, 2, 7, 4,
+            2,
+                6, 1, 3, 3, 1,
+                1, 3, 6, 5, 0,
+            1,
+                1, 4, 1, 1,
+            0,
+        1, 7, 7, 5,
+            1,
+                1, 0, 6, 4, 1,
+            1,
+                1, 7, 5, 3,
+            0,
+        15, 6, 5, 7,
+            4,
+                2, 0, 4, 0, 2,
+                0, 3, 5, 8, 0,
+                4, 3, 4, 7, 0,
+                2, 6, 7, 9, 0,
+            0,
+            0,
+        21, 7, 5, 5,
+            1,
+                0, 2, 4, 6, 2,
+            1,
+                1, 5, 3, 2,
+            0,
+        9, 7, 5, 5,
+            1,
+                4, 2, 5, 6, 1,
+            1,
+                1, 6, 1, 2,
+            0,
+        16, 14, 10, 3,
+            2,
+                1, 0, 7, 6, 3,
+                9, 1, 7, 10, 0,
+            0,
+            0,
+        27, 7, 7, 10,
+            1,
+                0, 8, 7, 9, 1,
+            0,
+            0,
+    2, 1, 1
+};
+
+const int levelDefee[] = {
     /* level size */ scrnX, scrnY,
     /* rooms */ 4,
         /* room 1 */ 1, 1, 6, 4,
@@ -236,6 +350,7 @@ void initLevel(level *l, player *p, const int *def) {
         w = def[seeker++];
         h = def[seeker++];
         initRoom(&l->rooms[i], x, y, w, h);
+        l->rooms[i].visited = 0;
         printf("room %d initialized\n", i);
 
         l->rooms[i].doorCount = def[seeker++];
@@ -374,7 +489,7 @@ int main() {
                     walk.x++;
                     break;
                 case 'e':
-                    pickupItem(&dude, &hub);
+                    pickupItem(&dude, findRoomFromPos(dude.pos, &hub.rooms[0], hub.roomCount));
                     break;
                 case 'q':
                     exit = 1;
@@ -427,6 +542,7 @@ int main() {
 
             done = 0;
             dude.pos = newpos;
+            findRoomFromPos(dude.pos, &hub.rooms[0], hub.roomCount)->visited = 1;
 
             printf("updating enemies\n");
             // update enemies in the room occupied by the player
@@ -466,6 +582,7 @@ int main() {
             int x, y, i, j;
             for(y = 0; y < scrnY; y++) {
                 for(x = 0; x < scrnX; x++) {
+                    colors[y][x] = 0;
                     screen[y][x] = '.';
                 }
             }
@@ -473,24 +590,32 @@ int main() {
             room *r;
             for(i = 0; i < hub.roomCount; i++) {
                 r = &hub.rooms[i];
-                for(y = r->topLeft.y; y < r->topLeft.y + r->dimensions.y; y++) {
-                    for(x = r->topLeft.x; x < r->topLeft.x + r->dimensions.x; x++) {
-                        screen[y][x] = ' ';
+                if(r->visited) {
+                    for(y = r->topLeft.y; y < r->topLeft.y + r->dimensions.y; y++) {
+                        for(x = r->topLeft.x; x < r->topLeft.x + r->dimensions.x; x++) {
+                            colors[y][x] = 0;
+                            screen[y][x] = ' ';
+                        }
                     }
-                }
 
-                for(j = 0; j < r->doorCount; j++) {
-                    screen[r->topLeft.y + r->doors[j].pos.y][r->topLeft.x + r->doors[j].pos.x] = 'O';
+                    for(j = 0; j < r->doorCount; j++) {
+                        screen[r->topLeft.y + r->doors[j].pos.y][r->topLeft.x + r->doors[j].pos.x] = 'O';
+                        colors[r->topLeft.y + r->doors[j].pos.y][r->topLeft.x + r->doors[j].pos.x] = r->doors[j].keylevel;
+                    }
                 }
             }
 
-            drawItems(hub.rooms, hub.roomCount, &screen[0][0]);
-            drawEnemies(hub.rooms, hub.roomCount, &screen[0][0]);
+            drawItems(hub.rooms, hub.roomCount, &screen[0][0], &colors[0][0]);
+            drawEnemies(hub.rooms, hub.roomCount, &screen[0][0], &colors[0][0]);
 
             screen[dude.pos.y][dude.pos.x] = 'X';
-
+            int lastColor = 0;
             for(y = 0; y < scrnY; y++) {
                 for(x = 0; x < scrnX; x++) {
+                    if(colors[y][x] != lastColor) {
+                        lastColor = colors[y][x];
+                        changeColor(lastColor);
+                    }
                     printf("%c", screen[y][x]);
                 }
                 printf("\n");

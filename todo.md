@@ -35,8 +35,9 @@
   const int level[] = {2,/* room1 */ 3, 3, 5, 5, 1, 4, 2, 0, 10, 10, 0, /* no items */, 0, /* no enemies */, /* room2 */ 9, 9, 5, 5, 1, 0, 0, 0, 7, 5, 0, /* no items */, 0, /* no enemies */, 4, 4 };
   ```
   - ~~Rooms that are next to each other with no space between them can be traversed as if they were one~~
-  - Levels are structured in a way that forces the player to go through a series of rooms to get a key that will allow them to begin again in a different series of rooms.
-  - The last key opens the doors to the boss room where a big and tough enemy lives
+  - ~~Rooms become visible only when the player visits them for the first time~~
+  - ~~Levels are structured in a way that forces the player to go through a series of rooms to get a key that will allow them to begin again in a different series of rooms.~~
+  - ~~The last key opens the doors to the boss room where a big and tough enemy lives~~
   - Beating the boss gives you points depending on how many turns it took you to beat them from the start of the level
   - Scores from all levels cumulate, the lowest overall score is the best
 6. Score
