@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <time.h>
 
 #define scrnX 30
 #define scrnY 10
@@ -15,7 +16,7 @@ typedef struct door {
 } door;
 
 typedef struct attack {
-    int dmg, cost, chance;
+    int dmg, cost, failCost, chance;
 } attack;
 
 typedef struct stat {
@@ -277,7 +278,7 @@ void initLevel(level *l, player *p, const int *def) {
             l->rooms[i].enemies[j].stats.maxHealth = 100;
             l->rooms[i].enemies[j].stats.maxStamina = 100;
             l->rooms[i].enemies[j].stats.stamina = 100;
-            l->rooms[i].enemies[j].stats.stRegen = 5;
+            l->rooms[i].enemies[j].stats.stRegen = 1;
             printf("\t\tenemy %d initialized\n", j);
         }
     }
@@ -297,8 +298,11 @@ void initLevel(level *l, player *p, const int *def) {
     }
 }
 
+#define RAND_MAX 100
+
 int main() {
-    srand(NULL);
+    time_t t;
+    srand((unsigned) time(&t));
     level hub;
     player dude;
     initLevel(&hub, &dude, &levelDef[0]);
@@ -306,7 +310,8 @@ int main() {
     attack atNormal;
     atNormal.dmg = 10;
     atNormal.cost = 10;
-    atNormal.chance = 75;
+    atNormal.failCost = 5;
+    atNormal.chance = 25;
 
     dude.itemCount = 10;
     dude.items = malloc(dude.itemCount * sizeof(item));
@@ -321,7 +326,7 @@ int main() {
     dude.stats.maxHealth = 100;
     dude.stats.maxStamina = 100;
     dude.stats.stamina = 100;
-    dude.stats.stRegen = 5;
+    dude.stats.stRegen = 1;
 
     dude.items[1].type = healthpack;
     dude.items[1].level = 0;
@@ -499,11 +504,18 @@ int main() {
                 printf("\t\t\thp: %d\t stam: %d\n", fighter->stats.health, fighter->stats.stamina);
                 scanf(" %c", &xd);
                 if(dude.stats.stamina >= atNormal.cost) {
-                    dude.stats.stamina -= atNormal.cost;
-                    if(rand() % 100 >= atNormal.chance) {
-                        printf("your attack success\n");
-                        fighter->stats.health -= atNormal.dmg;
+                    int chance = rand() % 100;
+                    if(chance >= atNormal.chance) {
+                        dude.stats.stamina -= atNormal.cost;
+                        if(chance >= 95) {
+                            printf("CRITICAL HIT\n");
+                            fighter->stats.health -= atNormal.dmg * 3;
+                        } else {
+                            printf("your attack success\n");
+                            fighter->stats.health -= atNormal.dmg;
+                        }
                     } else {
+                        dude.stats.stamina -= atNormal.failCost;
                         printf("your attack failed\n");
                     }
                 } else {
@@ -516,11 +528,18 @@ int main() {
                 
                 //enemies turn
                 if(fighter->stats.stamina >= atNormal.cost) {
-                    fighter->stats.stamina -= atNormal.cost;
-                    if(rand() % 100 >= atNormal.chance) {
-                        printf("enemys attack success\n");
-                        dude.stats.health -= atNormal.dmg;
+                    int chance = rand() % 100;
+                    if(chance >= atNormal.chance) {
+                        fighter->stats.stamina -= atNormal.cost;
+                        if(chance >= 95) {
+                            printf("CRITICAL HIT\n");
+                            dude.stats.health -= atNormal.dmg * 3;
+                        } else {
+                            printf("enemys attack success\n");
+                            dude.stats.health -= atNormal.dmg;
+                        }
                     } else {
+                        fighter->stats.stamina -= atNormal.failCost;
                         printf("enemys attack failed\n");
                     }
                 } else {
