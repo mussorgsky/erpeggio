@@ -644,6 +644,7 @@ int main() {
             printf("a fight is starting, you have 3 attacks to choose from:\n(w)eak, (n)ormal, (h)ard\neach has a different stamina cost, damage and chance of success\nchoose wisely\n");
             while(dude.stats.health > 0 && fighter->stats.health > 0) {
                 //players turn
+                turns++;
                 printf("it\'s your turn\n");
                 printf("hp: %d\t stam: %d", dude.stats.health, dude.stats.stamina);
                 printf("\t\t\thp: %d\t stam: %d\n", fighter->stats.health, fighter->stats.stamina);
