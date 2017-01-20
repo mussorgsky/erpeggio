@@ -23,8 +23,8 @@ typedef struct stat {
     int health, maxHealth, maxStamina, stamina, stRegen;
 } stat;
 
-enum enemyType { dead, normal, boss };
-char enemyLetter[] = { '$', 'E', 'B' };
+enum enemyType { dead, weak, normal, boss };
+char enemyLetter[] = { '$', 'e', 'E', 'B' };
 
 typedef struct enemy {
     enum enemyType type;
@@ -33,8 +33,8 @@ typedef struct enemy {
     stat stats;
 } enemy;
 
-enum itemType { empty, key, healthpack };
-char itemLetter[] = { '$', 'k', 'h' };
+enum itemType { empty, key };
+char itemLetter[] = { '$', 'k' };
 
 typedef struct item {
     enum itemType type;
@@ -166,8 +166,6 @@ void pickupItem(player *p, room *r) {
                         }
                     }
                     break;
-                case healthpack:
-                    break;
             }
         }
     }
@@ -228,7 +226,8 @@ const int levelDef[] = {
                 4, 1, 2, 2, 0,
             1,
                 1, 1, 2, 2,
-            0,
+            1,
+                3, 1, 1, 1,
         27, 2, 7, 4,
             1,
                 0, 1, 2, 1, 1,
@@ -286,18 +285,18 @@ const int levelDef[] = {
                 0, 8, 7, 9, 1,
             0,
             0,
-    2, 1, 1
+    2, 1, 10
 };
 
 void initLevel(level *l, player *p, const int *def) {
     int seeker = 0;
     l->size.x = def[seeker++];
     l->size.y = def[seeker++];
-    printf("level size set\n");
+    //printf("level size set\n");
 
     l->roomCount = def[seeker++];
     l->rooms = malloc(l->roomCount * sizeof(room));
-    printf("room array allocated\n");
+    //printf("room array allocated\n");
 
     for(int i = 0; i < l->roomCount; i++) {
         int x, y, w,h;
@@ -307,11 +306,11 @@ void initLevel(level *l, player *p, const int *def) {
         h = def[seeker++];
         initRoom(&l->rooms[i], x, y, w, h);
         l->rooms[i].visited = 0;
-        printf("room %d initialized\n", i);
+        //printf("room %d initialized\n", i);
 
         l->rooms[i].doorCount = def[seeker++];
         l->rooms[i].doors = malloc(l->rooms[i].doorCount * sizeof(door));
-        printf("\tdoors initialized\n");
+        //printf("\tdoors initialized\n");
         
         for(int j = 0; j < l->rooms[i].doorCount; j++) {
             l->rooms[i].doors[j].pos.x = def[seeker++];
@@ -320,24 +319,24 @@ void initLevel(level *l, player *p, const int *def) {
             l->rooms[i].doors[j].pretarget.x = def[seeker++];
             l->rooms[i].doors[j].pretarget.y = def[seeker++];
             l->rooms[i].doors[j].parentPos = l->rooms[i].topLeft;
-            printf("\t\tdoor %d initialized\n", j);
+            //printf("\t\tdoor %d initialized\n", j);
         }
 
         l->rooms[i].itemCount = def[seeker++];
         l->rooms[i].items = malloc(l->rooms[i].itemCount * sizeof(item));
-        printf("\titems initialized\n");
+        //printf("\titems initialized\n");
 
         for(int j = 0; j < l->rooms[i].itemCount; j++) {
             l->rooms[i].items[j].type = def[seeker++];
             l->rooms[i].items[j].level = def[seeker++];
             l->rooms[i].items[j].pos.x = def[seeker++];
             l->rooms[i].items[j].pos.y = def[seeker++];
-            printf("\t\titem %d initialized\n", j);
+            //printf("\t\titem %d initialized\n", j);
         }
 
         l->rooms[i].enemyCount = def[seeker++];
         l->rooms[i].enemies = malloc(l->rooms[i].enemyCount * sizeof(enemy));
-        printf("\tenemies initialized\n");
+        //printf("\tenemies initialized\n");
 
         for(int j = 0; j < l->rooms[i].enemyCount; j++) {
             l->rooms[i].enemies[j].type = def[seeker++];
@@ -345,44 +344,77 @@ void initLevel(level *l, player *p, const int *def) {
             l->rooms[i].enemies[j].pos.y = def[seeker++];
             l->rooms[i].enemies[j].level = def[seeker++];
 
-            l->rooms[i].enemies[j].stats.health = 100;
-            l->rooms[i].enemies[j].stats.maxHealth = 100;
-            l->rooms[i].enemies[j].stats.maxStamina = 100;
-            l->rooms[i].enemies[j].stats.stamina = 100;
-            l->rooms[i].enemies[j].stats.stRegen = 1;
-            printf("\t\tenemy %d initialized\n", j);
+            if(l->rooms[i].enemies[j].type == weak) {
+                l->rooms[i].enemies[j].stats.health = 30;
+                l->rooms[i].enemies[j].stats.maxHealth = 30;
+                l->rooms[i].enemies[j].stats.maxStamina = 20;
+                l->rooms[i].enemies[j].stats.stamina = 20;
+                l->rooms[i].enemies[j].stats.stRegen = 1;
+            } else if(l->rooms[i].enemies[j].type == normal) {
+                l->rooms[i].enemies[j].stats.health = 70;
+                l->rooms[i].enemies[j].stats.maxHealth = 70;
+                l->rooms[i].enemies[j].stats.maxStamina = 60;
+                l->rooms[i].enemies[j].stats.stamina = 60;
+                l->rooms[i].enemies[j].stats.stRegen = 4;
+            }else {
+                l->rooms[i].enemies[j].stats.health = 120;
+                l->rooms[i].enemies[j].stats.maxHealth = 120;
+                l->rooms[i].enemies[j].stats.maxStamina = 120;
+                l->rooms[i].enemies[j].stats.stamina = 120;
+                l->rooms[i].enemies[j].stats.stRegen = 12;
+            }
+            //printf("\t\tenemy %d initialized\n", j);
         }
     }
 
     p->pos = l->rooms[0].topLeft;
     p->pos.x += def[seeker++];
     p->pos.y += def[seeker++];
-    printf("player position set\n\n");
+    //printf("player position set\n\n");
     p->level = def[seeker++];
 
     for(int i = 0; i < l->roomCount; i++) {
         for(int j = 0; j < l->rooms[i].doorCount; j++) {
             vec2 target = l->rooms[i].doors[j].pretarget;
             l->rooms[i].doors[j].target = &l->rooms[target.x].doors[target.y];
-            printf("door %d %d target set\n", i, j);
+            //printf("door %d %d target set\n", i, j);
         }
     }
+}
+
+void cleanScanf() {
+    char c;
+    while((c = getchar()) != '\n' && c != EOF) { }
 }
 
 #define RAND_MAX 100
 
 int main() {
+    int turns = 0;
+
     time_t t;
     srand((unsigned) time(&t));
     level hub;
     player dude;
     initLevel(&hub, &dude, &levelDef[0]);
 
+    attack atWeak;
+    atWeak.dmg = 5;
+    atWeak.cost = 6;
+    atWeak.failCost = 5;
+    atWeak.chance = 10;
+
     attack atNormal;
     atNormal.dmg = 10;
     atNormal.cost = 10;
     atNormal.failCost = 5;
     atNormal.chance = 25;
+
+    attack atHard;
+    atHard.dmg = 30;
+    atHard.cost = 25;
+    atHard.failCost = 15;
+    atHard.chance = 80;
 
     dude.itemCount = 10;
     dude.items = malloc(dude.itemCount * sizeof(item));
@@ -397,15 +429,9 @@ int main() {
     dude.stats.maxHealth = 100;
     dude.stats.maxStamina = 100;
     dude.stats.stamina = 100;
-    dude.stats.stRegen = 1;
+    dude.stats.stRegen = 10;
 
-    dude.items[1].type = healthpack;
-    dude.items[1].level = 0;
-    dude.items[1].inInventory = 1;
-    dude.items[1].pos.x = 0;
-    dude.items[1].pos.y = 0;
-
-    for(int i = 2; i < dude.itemCount; i++) {
+    for(int i = 1; i < dude.itemCount; i++) {
         item *it = &dude.items[i];
         it->type = empty;
         it->level = 0;
@@ -419,17 +445,19 @@ int main() {
     */
     int exit = 0;
     int fight = 0;
-    char input[140];
+    char input;
 
     enemy *fighter;
 
     do {
+        turns++;
         if(!fight) {
-            scanf(" %s", &input);
+            scanf(" %c", &input);
+            cleanScanf();
             vec2 walk;
             walk.x = 0;
             walk.y = 0;
-            switch(input[0]) {
+            switch(input) {
                 default:
                     break;
                 case 'w':
@@ -450,12 +478,17 @@ int main() {
                 case 'q':
                     exit = 1;
                     break;
+                case 'k':
+                    printf("you have a level %d key\n", dude.items[0].level);
+                case 't':
+                    printf("you are currently on turn %d\n", turns);
+                    break;
             }
 
             vec2 testpos = dude.pos;
             testpos.x += walk.x;
             testpos.y += walk.y;
-            printf("testing rooms for wall collisions\n");
+            //printf("testing rooms for wall collisions\n");
             if(testpos.x >= 0 && testpos.y >= 0 && testpos.x < scrnX && testpos.y < scrnY) {
                 for(int i = 0; i < hub.roomCount; i++) {
                     vec2 rPos = hub.rooms[i].topLeft;
@@ -469,12 +502,12 @@ int main() {
                     }
                 }
             }
-            printf("\tdone\n");
+            //printf("\tdone\n");
 
             int m, n;
             int done = 0;
             vec2 newpos = dude.pos;
-            printf("testing rooms for doors\n");
+            //printf("testing rooms for doors\n");
             for(m = 0; m < hub.roomCount; m++) {
                 for(n = 0; n < hub.rooms[m].doorCount; n++) {
                     vec2 pos = hub.rooms[m].doors[n].pos;
@@ -483,7 +516,7 @@ int main() {
 
                     if(dude.pos.x == pos.x && dude.pos.y == pos.y && done != 1) {
                         if(checkKey(&dude, &hub.rooms[m].doors[n])) {
-                            printf("doors %d %d\n", m, n);
+                            //printf("doors %d %d\n", m, n);
                             newpos = hub.rooms[m].doors[n].target->pos;
                             newpos.x += hub.rooms[m].doors[n].target->parentPos.x;
                             newpos.y += hub.rooms[m].doors[n].target->parentPos.y;
@@ -494,20 +527,21 @@ int main() {
                     }
                 }
             }
-            printf("\tdone\n");
+            //printf("\tdone\n");
 
             done = 0;
             dude.pos = newpos;
             findRoomFromPos(dude.pos, &hub.rooms[0], hub.roomCount)->visited = 1;
 
-            printf("updating enemies\n");
+            //printf("updating enemies\n");
             // update enemies in the room occupied by the player
             room *enroom = findRoomFromPos(dude.pos, hub.rooms, hub.roomCount);
             //room *enroom = &hub.rooms[2];
             for(int i = 0; i < enroom->enemyCount; i++) {
                 enemy *en = &enroom->enemies[i];
                 if(en->type != dead) {
-                    int chasing = en->level >= dude.level;
+                    //int chasing = en->level >= dude.level;
+                    int chasing = 1;
                     vec2 globPos = globalPosFromRoom(en->pos, enroom);
                     vec2 newEnPos = en->pos;
                     if(chasing) {
@@ -533,7 +567,7 @@ int main() {
                     }
                 }
             }
-            printf("\tdone\n");
+            //printf("\tdone\n");
 
             int x, y, i, j;
             for(y = 0; y < scrnY; y++) {
@@ -577,26 +611,43 @@ int main() {
                 printf("\n");
             }
         } else {
-            char xd;
+            char ctrl;
+            attack *at;
+            printf("a fight is starting, you have 3 attacks to choose from:\n(w)eak, (n)ormal, (h)ard\neach has a different stamina cost, damage and chance of success\nchoose wisely\n");
             while(dude.stats.health > 0 && fighter->stats.health > 0) {
                 //players turn
                 printf("it\'s your turn\n");
                 printf("hp: %d\t stam: %d", dude.stats.health, dude.stats.stamina);
                 printf("\t\t\thp: %d\t stam: %d\n", fighter->stats.health, fighter->stats.stamina);
-                scanf(" %c", &xd);
-                if(dude.stats.stamina >= atNormal.cost) {
+                scanf(" %c", &ctrl);
+                cleanScanf();
+                switch(ctrl) {
+                    default:
+                        at = &atNormal;
+                        break;
+                    case 'w':
+                        at = &atWeak;
+                        break;
+                    case 'n':
+                        at = &atNormal;
+                        break;
+                    case 'h':
+                        at = &atHard;
+                        break;
+                }
+                if(dude.stats.stamina >= at->cost) {
                     int chance = rand() % 100;
-                    if(chance >= atNormal.chance) {
-                        dude.stats.stamina -= atNormal.cost;
+                    if(chance >= at->chance) {
+                        dude.stats.stamina -= at->cost;
                         if(chance >= 95) {
                             printf("CRITICAL HIT\n");
-                            fighter->stats.health -= atNormal.dmg * 3;
+                            fighter->stats.health -= at->dmg * 3;
                         } else {
                             printf("your attack success\n");
-                            fighter->stats.health -= atNormal.dmg;
+                            fighter->stats.health -= at->dmg;
                         }
                     } else {
-                        dude.stats.stamina -= atNormal.failCost;
+                        dude.stats.stamina -= at->failCost;
                         printf("your attack failed\n");
                     }
                 } else {
@@ -608,19 +659,33 @@ int main() {
                 }
                 
                 //enemies turn
-                if(fighter->stats.stamina >= atNormal.cost) {
+                switch(fighter->type) {
+                    default:
+                        at = &atNormal;
+                        break;
+                    case weak:
+                        at = &atWeak;
+                        break;
+                    case normal:
+                        at = &atNormal;
+                        break;
+                    case boss:
+                        at = &atHard;
+                        break;
+                }
+                if(fighter->stats.stamina >= at->cost) {
                     int chance = rand() % 100;
-                    if(chance >= atNormal.chance) {
-                        fighter->stats.stamina -= atNormal.cost;
+                    if(chance >= at->chance) {
+                        fighter->stats.stamina -= at->cost;
                         if(chance >= 95) {
                             printf("CRITICAL HIT\n");
-                            dude.stats.health -= atNormal.dmg * 3;
+                            dude.stats.health -= at->dmg * 3;
                         } else {
                             printf("enemys attack success\n");
-                            dude.stats.health -= atNormal.dmg;
+                            dude.stats.health -= at->dmg;
                         }
                     } else {
-                        fighter->stats.stamina -= atNormal.failCost;
+                        fighter->stats.stamina -= at->failCost;
                         printf("enemys attack failed\n");
                     }
                 } else {
@@ -634,8 +699,15 @@ int main() {
             printf("hp: %d\t stam: %d", dude.stats.health, dude.stats.stamina);
             printf("\t\t\thp: %d\t stam: %d\n", fighter->stats.health, fighter->stats.stamina);
             if(dude.stats.health > 0) {
-                printf("you won the battle\n");
-                fighter->type = dead;
+                if(fighter->type == boss) {
+                    printf("~~~~CONGRATULATIONS!~~~~\n~~~~YOU WON THE GAME~~~~\nit took you %d turns\n", turns);
+                    exit = 1;
+                } else {
+                    printf("you won the battle\n");
+                    fighter->type = dead;
+                    dude.stats.health = dude.stats.maxHealth;
+                    dude.stats.stamina = dude.stats.maxStamina;
+                }
             } else {
                 printf("you lost\n");
                 exit = 1;
@@ -644,7 +716,5 @@ int main() {
         }
     } while(!exit);
 
-
-    free(hub.rooms);
     return 0;
 }
