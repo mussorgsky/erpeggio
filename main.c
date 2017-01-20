@@ -289,50 +289,6 @@ const int levelDef[] = {
     2, 1, 1
 };
 
-const int levelDefee[] = {
-    /* level size */ scrnX, scrnY,
-    /* rooms */ 4,
-        /* room 1 */ 1, 1, 6, 4,
-            /* doors in room 1 */ 2,
-                /* door 1 */ 5, 1, 0, /* target [room], [door] */ 1, 0,
-                /* door 2 */ 5, 2, 1, 1, 1,
-            /* items in room 1 */ 0,
-                /* no items in room 1 */
-            /* enemies in room 1*/ 0,
-                /* no enemies in room 1 */
-        /* room 2 */ 10, 1, 15, 4,
-            /* doors in room 2 */ 2,
-                /* door 1 */ 0, 1, 0, 0, 0,
-                /* door 2 */ 0, 2, 1, 0, 1,
-            /* items in room 2 */ 1,
-                /* item 1 */ 1, 10, 2, 2,
-            /* enemies in room 2 */ 1,
-                /* enemy 1 */ 1, 8, 1, 10,
-        /* room 3 */ 1, 5, 3, 2,
-            /* doors in room 3 */ 0,
-                /* no doors in room 3 */
-            /* items */ 0,
-                /* no items in room 3 */
-            /* enemies */ 0,
-                /* no enemies in room 3 */
-        /* room 4 */ 10, 5, 6, 3, 0, 0, 0,
-    /* player */ 1, 1, 1
-};
-
-const int levelDefoo[] = {
-    /* level size */ scrnX, scrnY,
-    /* rooms */ 1,
-        /* room 1 */ 2, 2, 5, 5,
-            /* doors in room 1 */ 2,
-                /* door 1 */ 0, 0, 1, /* target [room], [door] */ 0, 1,
-                /* door 2 */ 4, 4, 1, 0, 0,
-            /* items in room 1 */ 1,
-                /* item 1*/ 1, 10, 2, 2,
-            /* enemies in room 1*/ 1,
-                /* enemy 1 */ 1, 3, 3, 10,
-    /* player */ 1, 1, 1
-};
-
 void initLevel(level *l, player *p, const int *def) {
     int seeker = 0;
     l->size.x = def[seeker++];
